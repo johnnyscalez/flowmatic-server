@@ -190,7 +190,7 @@ async function resolveSlugFromName(appName, creds) {
     const apps = Array.isArray(parsed) ? parsed : parsed?.apps || parsed?.result || [];
 
     if (apps.length > 0) {
-      const slug = apps[0].name || apps[0].slug || apps[0].id;
+      const slug = apps[0].appName || apps[0].name || apps[0].slug || apps[0].id;
       console.log(`       apps_recommend: "${appName}" → "${slug}"`);
       // Cache it for future requests
       slugMap[key] = slug;
@@ -762,10 +762,12 @@ const SUPPORTED_APPS = [
   { slug: 'onedrive',          name: 'OneDrive' },
   { slug: 'github',            name: 'GitHub' },
   { slug: 'gitlab',            name: 'GitLab' },
-  { slug: 'airtable',          name: 'Airtable' },
-  { slug: 'calendly',          name: 'Calendly' },
-  // NOTE: OpenAI, Anthropic, Instantly, GoHighLevel, Close CRM, Tally,
-  // WhatsApp Business, Linear are NOT available in Make.com — excluded intentionally
+  { slug: 'airtable',                name: 'Airtable' },
+  { slug: 'calendly',               name: 'Calendly' },
+  { slug: 'whatsapp-business-cloud', name: 'WhatsApp Business' },
+  { slug: 'highlevel',              name: 'GoHighLevel' },
+  // NOTE: OpenAI, Anthropic, Instantly, Close CRM, Tally, Linear
+  // are NOT available in Make.com — excluded intentionally
 ];
 
 app.get('/apps', (_req, res) => {
