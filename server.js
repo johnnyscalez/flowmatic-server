@@ -471,7 +471,7 @@ app.post('/build-workflow', async (req, res) => {
       }
     }
 
-    // Build the verified module block injected into Claude's planning prompt
+    // Build the verified module block + fetch schemas for key fields
     let verifiedModulesPrompt = '';
     if (Object.keys(verifiedModuleMap).length > 0) {
       verifiedModulesPrompt = '\n\nVERIFIED MAKE.COM MODULES (use ONLY these — no others):\n';
@@ -479,8 +479,34 @@ app.post('/build-workflow', async (req, res) => {
         const triggers = modules.filter((m) => m.type === 'trigger');
         const actions = modules.filter((m) => m.type === 'action');
         verifiedModulesPrompt += `\nApp: "${appName}" (version: ${version})\n`;
-        if (triggers.length) verifiedModulesPrompt += `  Triggers: ${triggers.map((m) => `${m.name} ("${m.label}")`).join(', ')}\n`;
-        if (actions.length) verifiedModulesPrompt += `  Actions: ${actions.map((m) => `${m.name} ("${m.label}")`).join(', ')}\n`;
+
+        // Fetch schema for each module to expose field names to Claude
+        for (const mod of [...triggers, ...actions]) {
+          verifiedModulesPrompt += `  ${mod.type === 'trigger' ? 'Trigger' : 'Action'}: ${mod.name} ("${mod.label}")\n`;
+          try {
+            const schemaRaw = await getModuleSchema(appName, mod.name, version, creds);
+            const schema = typeof schemaRaw === 'string' ? JSON.parse(schemaRaw) : schemaRaw;
+            // Extract field names from the schema
+            const fields = [];
+            const extract = (obj) => {
+              if (!obj) return;
+              if (Array.isArray(obj)) { obj.forEach(extract); return; }
+              if (obj.name && obj.type && obj.type !== 'collection' && obj.type !== 'array') {
+                fields.push(`${obj.name}${obj.required ? '*' : ''} (${obj.type}${obj.label ? ' — ' + obj.label : ''})`);
+              }
+              if (obj.spec) extract(obj.spec);
+              if (obj.fields) extract(obj.fields);
+            };
+            const parsed = typeof schema === 'string' ? JSON.parse(schema) : schema;
+            const specArr = parsed?.interface || parsed?.parameters || parsed?.spec || [];
+            extract(specArr);
+            if (fields.length > 0) {
+              verifiedModulesPrompt += `    Fields: ${fields.slice(0, 15).join(', ')}\n`;
+            }
+          } catch (e) {
+            // Schema fetch failed — just list module name without fields
+          }
+        }
       }
     }
 
@@ -554,8 +580,18 @@ General rules:
 - CRITICAL: never use "openai" — it is not available in Make.com. If the brief mentions AI/GPT/OpenAI, ignore that requirement and build the workflow without it
 - "version" must match the app version listed
 - First module is always the trigger (id: 1)
-- Use {{moduleId.fieldName}} for data mappings
-- Only list apps needing OAuth in "connections"${verifiedModulesPrompt}`;
+- Use {{moduleId.fieldName}} for data mappings between modules
+- Only list apps needing OAuth in "connections"
+
+Mappings rules (CRITICAL — do not leave mappings empty):
+- Every action module MUST have its mappings filled with real values from the brief or data from previous modules
+- Use the field names listed under each module in VERIFIED MAKE.COM MODULES
+- For message fields (body, message, text, content): write the actual message text from the brief
+- For contact fields (phone, email, name): map from trigger data using {{1.fieldName}}
+- For status/pipeline fields: use the exact values mentioned in the brief
+- Example WhatsApp message: "mappings": { "to": "{{1.phone}}", "body": "Thank you for your interest!" }
+- Example GoHighLevel contact: "mappings": { "contactId": "{{1.id}}", "pipelineId": "new-lead", "status": "open" }
+- Never output "mappings": {} for an action module — always populate it${verifiedModulesPrompt}`;
 
     const ALLOWED_BUILTINS = new Set(['BasicRouter']);
     const verifiedAppNames = new Set(Object.keys(verifiedModuleMap));
