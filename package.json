@@ -1,0 +1,19 @@
+{
+  "name": "workflow-builder-server",
+  "version": "1.0.0",
+  "description": "Express server that builds workflows using Claude API with Make MCP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@supabase/supabase-js": "^2.103.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

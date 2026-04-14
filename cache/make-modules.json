@@ -1,0 +1,852 @@
+{
+  "facebook-lead-ads": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "NewEvent",
+        "label": "Watch form filling",
+        "type": "trigger"
+      },
+      {
+        "name": "GetForm",
+        "label": "Get a form",
+        "type": "action"
+      },
+      {
+        "name": "GetLeadgen",
+        "label": "Get a leadgen form",
+        "type": "action"
+      },
+      {
+        "name": "Unsubscribe",
+        "label": "Unsubscribe a webhook",
+        "type": "action"
+      }
+    ]
+  },
+  "google-email": {
+    "version": 2,
+    "modules": [
+      {
+        "name": "TriggerNewEmail",
+        "label": "Watch emails",
+        "type": "action"
+      },
+      {
+        "name": "ActionSendEmail",
+        "label": "Send an email",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateDraft",
+        "label": "Create a draft",
+        "type": "action"
+      },
+      {
+        "name": "ActionSetFlagSeen",
+        "label": "Mark as read",
+        "type": "action"
+      },
+      {
+        "name": "ActionSetFlagUnseen",
+        "label": "Mark as unread",
+        "type": "action"
+      },
+      {
+        "name": "ActionMoveEmail",
+        "label": "Move an email",
+        "type": "action"
+      },
+      {
+        "name": "ActionCopyEmail",
+        "label": "Copy an email",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteEmail",
+        "label": "Delete an email",
+        "type": "action"
+      },
+      {
+        "name": "ActionAddLabels",
+        "label": "Add labels",
+        "type": "action"
+      },
+      {
+        "name": "ActionSetLabels",
+        "label": "Set labels",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteLabels",
+        "label": "Remove labels",
+        "type": "action"
+      },
+      {
+        "name": "FeedAttachments",
+        "label": "Download attachments",
+        "type": "action"
+      }
+    ]
+  },
+  "google-sheets": {
+    "version": 2,
+    "modules": [
+      {
+        "name": "watchRows",
+        "label": "Watch rows",
+        "type": "action"
+      },
+      {
+        "name": "addRow",
+        "label": "Add a row",
+        "type": "action"
+      },
+      {
+        "name": "addMultipleRows",
+        "label": "Add multiple rows",
+        "type": "action"
+      },
+      {
+        "name": "updateRow",
+        "label": "Update a row",
+        "type": "action"
+      },
+      {
+        "name": "updateCell",
+        "label": "Update a cell",
+        "type": "action"
+      },
+      {
+        "name": "getCell",
+        "label": "Get a cell",
+        "type": "action"
+      },
+      {
+        "name": "deleteRow",
+        "label": "Delete a row",
+        "type": "action"
+      },
+      {
+        "name": "clearRow",
+        "label": "Clear a row",
+        "type": "action"
+      },
+      {
+        "name": "getSheetContent",
+        "label": "Get sheet content",
+        "type": "action"
+      },
+      {
+        "name": "createSpreadsheet",
+        "label": "Create a spreadsheet",
+        "type": "action"
+      },
+      {
+        "name": "addSheet",
+        "label": "Add a sheet",
+        "type": "action"
+      },
+      {
+        "name": "filterRows",
+        "label": "Filter rows",
+        "type": "action"
+      }
+    ]
+  },
+  "typeform": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "EventEntry",
+        "label": "Watch new entries",
+        "type": "trigger"
+      },
+      {
+        "name": "EventEntry2",
+        "label": "Watch new entries (instant)",
+        "type": "trigger"
+      },
+      {
+        "name": "TriggerNewEntry",
+        "label": "List responses",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewEntry2",
+        "label": "Search responses",
+        "type": "action"
+      },
+      {
+        "name": "ActionSearchEntry",
+        "label": "Search entries",
+        "type": "action"
+      }
+    ]
+  },
+  "hubspotcrm": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "WatchNotifications",
+        "label": "Watch notifications",
+        "type": "trigger"
+      },
+      {
+        "name": "createRecord2020",
+        "label": "Create a record",
+        "type": "action"
+      },
+      {
+        "name": "UpdateRecord",
+        "label": "Update a record",
+        "type": "action"
+      },
+      {
+        "name": "DeleteRecord",
+        "label": "Delete a record",
+        "type": "action"
+      },
+      {
+        "name": "FetchRecord",
+        "label": "Get a record",
+        "type": "action"
+      },
+      {
+        "name": "SearchCRMObjects",
+        "label": "Search CRM objects",
+        "type": "action"
+      },
+      {
+        "name": "ListRecords",
+        "label": "List records",
+        "type": "action"
+      },
+      {
+        "name": "createUpdateContact2020",
+        "label": "Create/update a contact",
+        "type": "action"
+      },
+      {
+        "name": "CreateEngagement",
+        "label": "Create an engagement",
+        "type": "action"
+      },
+      {
+        "name": "CreateTicket",
+        "label": "Create a ticket",
+        "type": "action"
+      },
+      {
+        "name": "MakeAPICall",
+        "label": "Make an API call",
+        "type": "action"
+      }
+    ]
+  },
+  "mailchimp": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "HookNewListEvent",
+        "label": "Watch subscribers",
+        "type": "trigger"
+      },
+      {
+        "name": "ActionAddSubscriber",
+        "label": "Add/update a subscriber",
+        "type": "action"
+      },
+      {
+        "name": "ActionEditSubscriber",
+        "label": "Update a subscriber",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteSubscriber",
+        "label": "Remove a subscriber",
+        "type": "action"
+      },
+      {
+        "name": "ActionFindSubscriber",
+        "label": "Find a subscriber",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetLists",
+        "label": "List audiences",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetSubscribers",
+        "label": "List subscribers",
+        "type": "action"
+      }
+    ]
+  },
+  "slack": {
+    "version": 4,
+    "modules": [
+      {
+        "name": "NewPublicMessage",
+        "label": "Watch public messages",
+        "type": "trigger"
+      },
+      {
+        "name": "NewPrivateMessage",
+        "label": "Watch private messages",
+        "type": "trigger"
+      },
+      {
+        "name": "CreateMessage",
+        "label": "Create a message",
+        "type": "action"
+      },
+      {
+        "name": "UpdateMessage",
+        "label": "Update a message",
+        "type": "action"
+      },
+      {
+        "name": "DeleteMessage",
+        "label": "Delete a message",
+        "type": "action"
+      },
+      {
+        "name": "UploadFile",
+        "label": "Upload a file",
+        "type": "action"
+      },
+      {
+        "name": "SetTopic",
+        "label": "Set a topic",
+        "type": "action"
+      }
+    ]
+  },
+  "stripe": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "WatchCharges",
+        "label": "Watch Events (Legacy)",
+        "type": "trigger"
+      },
+      {
+        "name": "watchEvents",
+        "label": "Watch Events",
+        "type": "trigger"
+      },
+      {
+        "name": "cancelPaymentIntent",
+        "label": "Cancel a Payment Intent",
+        "type": "action"
+      },
+      {
+        "name": "cancelPayout",
+        "label": "Cancel a Payout",
+        "type": "action"
+      },
+      {
+        "name": "CaptureCharge",
+        "label": "Capture a Charge",
+        "type": "action"
+      },
+      {
+        "name": "capturePaymentIntent",
+        "label": "Capture a Payment Intent",
+        "type": "action"
+      },
+      {
+        "name": "confirmPaymentIntent",
+        "label": "Confirm a Payment Intent",
+        "type": "action"
+      },
+      {
+        "name": "CreateCharge",
+        "label": "Create a Charge",
+        "type": "action"
+      },
+      {
+        "name": "createCustomer",
+        "label": "Create a Customer",
+        "type": "action"
+      },
+      {
+        "name": "createInvoice",
+        "label": "Create an Invoice",
+        "type": "action"
+      },
+      {
+        "name": "createInvoiceItem",
+        "label": "Create an Invoice Item",
+        "type": "action"
+      },
+      {
+        "name": "createPaymentIntent",
+        "label": "Create a Payment Intent",
+        "type": "action"
+      },
+      {
+        "name": "createPaymentLink",
+        "label": "Create a Payment Link",
+        "type": "action"
+      },
+      {
+        "name": "createPayout",
+        "label": "Create a Payout",
+        "type": "action"
+      },
+      {
+        "name": "createRefund",
+        "label": "Create a Refund",
+        "type": "action"
+      },
+      {
+        "name": "deleteCustomer",
+        "label": "Delete a Customer",
+        "type": "action"
+      },
+      {
+        "name": "deleteInvoice",
+        "label": "Delete a Draft Invoice",
+        "type": "action"
+      },
+      {
+        "name": "deleteInvoiceItem",
+        "label": "Delete an Invoice Item",
+        "type": "action"
+      },
+      {
+        "name": "finalizeInvoice",
+        "label": "Finalize a Draft Invoice",
+        "type": "action"
+      },
+      {
+        "name": "getBalance",
+        "label": "Retrieve Balance",
+        "type": "action"
+      },
+      {
+        "name": "getPaymentIntent",
+        "label": "Retrieve a Payment Intent",
+        "type": "action"
+      },
+      {
+        "name": "getPaymentLink",
+        "label": "Retrieve a Payment Link",
+        "type": "action"
+      },
+      {
+        "name": "makeAnApiCall",
+        "label": "Make an API Call",
+        "type": "action"
+      },
+      {
+        "name": "retrieveBalanceTransaction",
+        "label": "Retrieve a Balance Transaction",
+        "type": "action"
+      },
+      {
+        "name": "RetrieveCharge",
+        "label": "Retrieve a Charge",
+        "type": "action"
+      },
+      {
+        "name": "retrieveCustomer",
+        "label": "Retrieve a Customer",
+        "type": "action"
+      },
+      {
+        "name": "retrieveInvoice",
+        "label": "Retrieve an Invoice",
+        "type": "action"
+      },
+      {
+        "name": "retrieveInvoiceItem",
+        "label": "Retrieve an Invoice Item",
+        "type": "action"
+      },
+      {
+        "name": "retrievePayout",
+        "label": "Retrieve a Payout",
+        "type": "action"
+      },
+      {
+        "name": "retrieveRefund",
+        "label": "Retrieve a Refund",
+        "type": "action"
+      },
+      {
+        "name": "UpdateCharge",
+        "label": "Update a Charge",
+        "type": "action"
+      },
+      {
+        "name": "updateCustomer",
+        "label": "Update a Customer",
+        "type": "action"
+      },
+      {
+        "name": "updateInvoice",
+        "label": "Update an Invoice",
+        "type": "action"
+      },
+      {
+        "name": "updateInvoiceItem",
+        "label": "Update an Invoice Item",
+        "type": "action"
+      },
+      {
+        "name": "updatePaymentIntent",
+        "label": "Update a Payment Intent",
+        "type": "action"
+      },
+      {
+        "name": "updatePaymentLink",
+        "label": "Update a Payment Link",
+        "type": "action"
+      },
+      {
+        "name": "updatePayout",
+        "label": "Update a Payout",
+        "type": "action"
+      },
+      {
+        "name": "updateRefund",
+        "label": "Update a Refund",
+        "type": "action"
+      },
+      {
+        "name": "voidInvoice",
+        "label": "Void an Invoice",
+        "type": "action"
+      },
+      {
+        "name": "listAllBalanceHistory",
+        "label": "List All Balance History",
+        "type": "action"
+      },
+      {
+        "name": "listAllLineItems",
+        "label": "List All Invoice Line Items",
+        "type": "action"
+      },
+      {
+        "name": "ListCharges",
+        "label": "List All Charges",
+        "type": "action"
+      },
+      {
+        "name": "listCustomers",
+        "label": "List All Customers",
+        "type": "action"
+      },
+      {
+        "name": "listInvoiceItems",
+        "label": "Search Invoice Items",
+        "type": "action"
+      },
+      {
+        "name": "listInvoices",
+        "label": "Search Invoices",
+        "type": "action"
+      },
+      {
+        "name": "listPaymentIntents",
+        "label": "List Payment Intents",
+        "type": "action"
+      },
+      {
+        "name": "listPaymentLinks",
+        "label": "List All Payment Links",
+        "type": "action"
+      },
+      {
+        "name": "listPayouts",
+        "label": "List All Payouts",
+        "type": "action"
+      },
+      {
+        "name": "listRefunds",
+        "label": "List All Refunds",
+        "type": "action"
+      },
+      {
+        "name": "retrievePaymentLinkLines",
+        "label": "List Payment Link Lines",
+        "type": "action"
+      },
+      {
+        "name": "searchCustomers",
+        "label": "Search Customers",
+        "type": "action"
+      },
+      {
+        "name": "searchCustomersAdv",
+        "label": "Search Customers (Advanced)",
+        "type": "action"
+      }
+    ]
+  },
+  "woocommerce": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "TriggerNewOrder",
+        "label": "Watch orders",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewProduct",
+        "label": "Watch products",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewCustomer",
+        "label": "Watch customers",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewSubscription",
+        "label": "Watch subscriptions",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateCustomer",
+        "label": "Create a customer",
+        "type": "action"
+      },
+      {
+        "name": "ActionEditCustomer",
+        "label": "Edit a customer",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteCustomer",
+        "label": "Delete a customer",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetCustomer",
+        "label": "Get a customer",
+        "type": "action"
+      },
+      {
+        "name": "ActionChangeOrderStatus",
+        "label": "Change order status",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetOrder",
+        "label": "Get an order",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetSubscription",
+        "label": "Get subscription",
+        "type": "action"
+      },
+      {
+        "name": "ActionUpdateSubscription",
+        "label": "Update a subscription",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateOrderNote",
+        "label": "Create an order note",
+        "type": "action"
+      },
+      {
+        "name": "ActionListOrderNotes",
+        "label": "Get order notes",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateProduct",
+        "label": "Create a product",
+        "type": "action"
+      },
+      {
+        "name": "ActionEditProduct",
+        "label": "Edit a product",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteProduct",
+        "label": "Delete a product",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetProduct",
+        "label": "Get a product",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateOrder",
+        "label": "Create an order",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateCoupon",
+        "label": "Create a coupon",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteCoupon",
+        "label": "Delete a coupon",
+        "type": "action"
+      },
+      {
+        "name": "FeederOrderItems",
+        "label": "Iterate order items",
+        "type": "action"
+      }
+    ]
+  },
+  "asana": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "TriggerNewProject",
+        "label": "Watch projects",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewTask",
+        "label": "Watch tasks",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewTag",
+        "label": "Watch tags",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewUser",
+        "label": "Watch users",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewWorkspace",
+        "label": "Watch workspaces",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewTeam",
+        "label": "Watch teams",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewStory",
+        "label": "Watch stories",
+        "type": "action"
+      },
+      {
+        "name": "TriggerNewAttachment",
+        "label": "Watch attachments",
+        "type": "action"
+      },
+      {
+        "name": "HookNewEvent",
+        "label": "Watch events",
+        "type": "trigger"
+      },
+      {
+        "name": "ActionCreateProject",
+        "label": "Create a project",
+        "type": "action"
+      },
+      {
+        "name": "ActionEditProject",
+        "label": "Edit a project",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteProject",
+        "label": "Delete a project",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetProject",
+        "label": "Get a project",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateSection",
+        "label": "Create a project section",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateTask",
+        "label": "Create a task",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateSubTask",
+        "label": "Create a subtask",
+        "type": "action"
+      },
+      {
+        "name": "ActionEditTask",
+        "label": "Edit a task",
+        "type": "action"
+      },
+      {
+        "name": "ActionDeleteTask",
+        "label": "Delete a task",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetTask",
+        "label": "Get a task",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetTasks",
+        "label": "Get tasks",
+        "type": "action"
+      },
+      {
+        "name": "ActionAddTag",
+        "label": "Add a tag to a task",
+        "type": "action"
+      },
+      {
+        "name": "ActionRemoveTag",
+        "label": "Remove a tag from a task",
+        "type": "action"
+      },
+      {
+        "name": "ActionCreateStory",
+        "label": "Create a story",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetStory",
+        "label": "Get a story",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetStories",
+        "label": "Get stories",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetAttachment",
+        "label": "Get an attachment",
+        "type": "action"
+      },
+      {
+        "name": "ActionUploadAttachment",
+        "label": "Upload an attachment",
+        "type": "action"
+      },
+      {
+        "name": "ActionGetUsers",
+        "label": "Get users",
+        "type": "action"
+      }
+    ]
+  }
+}
