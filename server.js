@@ -471,7 +471,49 @@ app.post('/build-workflow', async (req, res) => {
       }
     }
 
-    // Build the verified module block + fetch schemas for key fields
+    // Known mapper fields for common modules — used to guide Claude's mappings
+    const KNOWN_FIELDS = {
+      'whatsapp-business-cloud': {
+        'sendMessage': 'fromId (Sender ID), to* (Receiver phone/WhatsApp ID), type* (use "text" for text messages), body (Text message body — write the actual message text here)',
+        'sendTemplateMessage': 'fromId (Sender ID), to* (Receiver), templateName* (Template name), languageCode* (e.g. "en_US")',
+      },
+      'highlevel': {
+        'addAContactToACampaign': 'contactId* (Contact ID from trigger), campaignId* (Campaign ID)',
+        'getAnOpportunity': 'id* (Opportunity ID)',
+        'universal': 'url* (API endpoint), method* (GET/POST/PUT), headers, body',
+      },
+      'google-sheets': {
+        'watchRows': 'spreadsheetId* (Spreadsheet ID), sheetId* (Sheet name), includeTeamDriveItems',
+        'addRow': 'spreadsheetId* (Spreadsheet ID), sheetId* (Sheet name), values* (Row values object)',
+        'updateRow': 'spreadsheetId* (Spreadsheet ID), sheetId* (Sheet name), rowNumber* (Row number), values* (Updated values)',
+        'getSheetContent': 'spreadsheetId* (Spreadsheet ID), sheetId* (Sheet name)',
+      },
+      'google-email': {
+        'ActionSendEmail': 'to* (Recipient email), subject* (Email subject), content* (Email body — write actual content), from (Sender name)',
+      },
+      'hubspotcrm': {
+        'createRecord2020': 'objectType* (e.g. "contacts","deals"), properties* (object with field values)',
+        'createUpdateContact2020': 'email* (Contact email), properties (firstname, lastname, phone, company)',
+        'SearchCRMObjects': 'objectType* (e.g. "contacts"), filterGroups* (search filters)',
+      },
+      'slack': {
+        'CreateMessage': 'channel* (Channel name or ID e.g. "#hot-leads"), text* (Message text — write actual content)',
+      },
+      'mailchimp': {
+        'ActionAddSubscriber': 'listId* (Audience ID), emailAddress* (Email), status* (subscribed/unsubscribed), mergeFields (FNAME, LNAME etc)',
+      },
+      'typeform': {
+        'EventEntry2': 'formId* (Typeform form ID)',
+      },
+      'stripe': {
+        'createCustomer': 'email* (Customer email), name (Customer name), phone (Phone number)',
+      },
+      'pipedrive': {
+        'createDeal': 'title* (Deal title), value (Deal value), currency (e.g. USD), status (open/won/lost)',
+      },
+    };
+
+    // Build the verified module block injected into Claude's planning prompt
     let verifiedModulesPrompt = '';
     if (Object.keys(verifiedModuleMap).length > 0) {
       verifiedModulesPrompt = '\n\nVERIFIED MAKE.COM MODULES (use ONLY these — no others):\n';
@@ -479,32 +521,11 @@ app.post('/build-workflow', async (req, res) => {
         const triggers = modules.filter((m) => m.type === 'trigger');
         const actions = modules.filter((m) => m.type === 'action');
         verifiedModulesPrompt += `\nApp: "${appName}" (version: ${version})\n`;
-
-        // Fetch schema for each module to expose field names to Claude
         for (const mod of [...triggers, ...actions]) {
           verifiedModulesPrompt += `  ${mod.type === 'trigger' ? 'Trigger' : 'Action'}: ${mod.name} ("${mod.label}")\n`;
-          try {
-            const schemaRaw = await getModuleSchema(appName, mod.name, version, creds);
-            const schema = typeof schemaRaw === 'string' ? JSON.parse(schemaRaw) : schemaRaw;
-            // Extract field names from the schema
-            const fields = [];
-            const extract = (obj) => {
-              if (!obj) return;
-              if (Array.isArray(obj)) { obj.forEach(extract); return; }
-              if (obj.name && obj.type && obj.type !== 'collection' && obj.type !== 'array') {
-                fields.push(`${obj.name}${obj.required ? '*' : ''} (${obj.type}${obj.label ? ' — ' + obj.label : ''})`);
-              }
-              if (obj.spec) extract(obj.spec);
-              if (obj.fields) extract(obj.fields);
-            };
-            const parsed = typeof schema === 'string' ? JSON.parse(schema) : schema;
-            const specArr = parsed?.interface || parsed?.parameters || parsed?.spec || [];
-            extract(specArr);
-            if (fields.length > 0) {
-              verifiedModulesPrompt += `    Fields: ${fields.slice(0, 15).join(', ')}\n`;
-            }
-          } catch (e) {
-            // Schema fetch failed — just list module name without fields
+          const fields = KNOWN_FIELDS[appName]?.[mod.name];
+          if (fields) {
+            verifiedModulesPrompt += `    Mapper fields: ${fields}\n`;
           }
         }
       }
