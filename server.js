@@ -430,6 +430,40 @@ app.post('/build-workflow', async (req, res) => {
 
   try {
     // -------------------------------------------------------------------------
+    // Step 0: Sanitize and clarify the brief before planning
+    // -------------------------------------------------------------------------
+    setStage('sanitizing brief');
+    console.log('\n[0/4] Sanitizing brief...');
+    console.log('  Original:', brief);
+
+    const selectedApps = Array.isArray(apps) && apps.length > 0 ? apps.join(', ') : 'not specified';
+    const sanitizeResponse = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1024,
+      system: `You are an automation brief editor. Your job is to take a user's raw description of a workflow automation and rewrite it as a clean, structured, unambiguous brief that is optimized for an AI that will build a Make.com scenario from it.
+
+Rules:
+- Identify and name the specific trigger app and event clearly
+- List every action step explicitly and separately
+- Preserve any conditions or branching logic exactly
+- Infer missing but obvious details (e.g. "send email" → "send email via Gmail" if Gmail was mentioned elsewhere)
+- Remove ambiguous language
+- Add specificity where it is clearly implied
+- Keep the same meaning — do not add actions that were not implied
+- Output ONLY the rewritten brief as plain text, no explanation, no markdown, no preamble
+
+Example input:
+"typeform new submission → hubspot deal + welcome email + sheets"
+
+Example output:
+"When a new response is submitted in Typeform, create a new deal in HubSpot using the respondent's name and email, send a welcome email via Gmail to the respondent, and add a new row to Google Sheets with the respondent's details."`,
+      messages: [{ role: 'user', content: `Raw brief: ${brief}\nApps selected: ${selectedApps}` }],
+    });
+
+    const cleanBrief = sanitizeResponse.content[0]?.text?.trim() || brief;
+    console.log('  Cleaned: ', cleanBrief);
+
+    // -------------------------------------------------------------------------
     // Step 0a: Get app slugs — from user selection or Claude detection fallback
     // -------------------------------------------------------------------------
     let detectedSlugs;
@@ -647,7 +681,7 @@ Mappings rules (CRITICAL — do not leave mappings empty):
     }
 
     console.log('\n[1/4] Claude planning workflow...');
-    const userMessage = `Agency: ${agency_name}\nPlatform: ${platform}\n\nBrief:\n${brief}`;
+    const userMessage = `Agency: ${agency_name}\nPlatform: ${platform}\n\nBrief:\n${cleanBrief}`;
     let plan;
 
     try {
@@ -737,7 +771,8 @@ Mappings rules (CRITICAL — do not leave mappings empty):
     const { error: sbError } = await supabase.from('created_scenarios').insert({
       scenario_name: scenarioName,
       scenario_id: String(scenarioId),
-      brief,
+      brief: cleanBrief,
+      original_brief: brief,
       apps_used: appsUsed,
       make_url: `https://us1.make.com/${teamId}/scenarios/${scenarioId}/edit`,
       agency_name,
