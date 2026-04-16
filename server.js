@@ -283,6 +283,36 @@ const GOOGLE_APPS = new Set([
 ]);
 
 function buildFlowEntry(mod, xPos, yPos = 0) {
+  // Transform make-ai-agents:RunAgent into an HTTP call to OpenAI
+  if (mod.app === 'make-ai-agents' && mod.module === 'RunAgent') {
+    const mappings = mod.mappings || {};
+    const systemPrompt = mappings.systemPrompt || 'You are a helpful assistant.';
+    const userPrompt = mappings.prompt || '{{lastMessage}}';
+    return {
+      id: mod.id,
+      module: 'http:ActionSendData',
+      version: 3,
+      parameters: {},
+      mapper: {
+        url: 'https://api.openai.com/v1/chat/completions',
+        method: 'POST',
+        headers: [
+          { name: 'Authorization', value: 'Bearer YOUR_OPENAI_API_KEY' },
+          { name: 'Content-Type', value: 'application/json' },
+        ],
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+        parseResponse: '1',
+      },
+      metadata: { designer: { x: xPos, y: yPos } },
+    };
+  }
+
   const parameters = {};
   if (GOOGLE_APPS.has(mod.app)) {
     parameters.__IMTCONN__ = GOOGLE_CONNECTION_ID;
@@ -377,7 +407,8 @@ function buildBlueprint(plan) {
 
 app.post('/build-workflow', async (req, res) => {
   console.log('📥 /build-workflow received:', JSON.stringify(req.body));
-  const { brief, platform, agency_name, user_id, apps } = req.body;
+  const { brief, platform, agency_name, user_id, apps, selected_apps, ai_agent_context } = req.body;
+  const selectedAppsArr = apps || selected_apps || [];
 
   if (!brief || !platform || !agency_name) {
     console.log('❌ Missing fields — brief:', !!brief, 'platform:', !!platform, 'agency_name:', !!agency_name);
@@ -436,7 +467,7 @@ app.post('/build-workflow', async (req, res) => {
     console.log('\n[0/4] Sanitizing brief...');
     console.log('  Original:', brief);
 
-    const selectedApps = Array.isArray(apps) && apps.length > 0 ? apps.join(', ') : 'not specified';
+    const selectedApps = selectedAppsArr.length > 0 ? selectedAppsArr.join(', ') : 'not specified';
     const sanitizeResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 1024,
@@ -467,8 +498,8 @@ Example output:
     // Step 0a: Get app slugs — from user selection or Claude detection fallback
     // -------------------------------------------------------------------------
     let detectedSlugs;
-    if (Array.isArray(apps) && apps.length > 0) {
-      detectedSlugs = apps;
+    if (selectedAppsArr.length > 0) {
+      detectedSlugs = selectedAppsArr;
       console.log(`\n[0/4] Apps provided by user: ${detectedSlugs.join(', ')}`);
     } else {
       setStage('detecting apps');
@@ -481,9 +512,23 @@ Example output:
     // Step 0b: Resolve each app's module list — cache-first, MCP on miss
     // -------------------------------------------------------------------------
     setStage('resolving module lists');
+
+    // Normalize known slug aliases before resolution
+    const SLUG_ALIASES = {
+      'data-store': 'datastore',
+      'make-data-store': 'datastore',
+      'make-ai-agents': 'make-ai-agents', // kept as internal, skip MCP probe
+    };
+    const normalizedSlugs = detectedSlugs.map(s => SLUG_ALIASES[s] || s);
+
     const verifiedModuleMap = {};
 
-    for (const slug of detectedSlugs) {
+    for (const slug of normalizedSlugs) {
+      // make-ai-agents is handled internally — no MCP module list needed
+      if (slug === 'make-ai-agents') {
+        console.log(`       make-ai-agents — internal module, skipping MCP probe`);
+        continue;
+      }
       try {
         const entry = await resolveAppModules(slug, creds);
         verifiedModuleMap[slug] = entry;
@@ -545,6 +590,12 @@ Example output:
       'pipedrive': {
         'createDeal': 'title* (Deal title), value (Deal value), currency (e.g. USD), status (open/won/lost)',
       },
+      'datastore': {
+        'AddRecord': 'key* (Unique record key e.g. phone number), data* (object with fields to store)',
+        'SearchRecord': 'filter* (Search value e.g. phone number)',
+        'GetRecord': 'key* (Record key to retrieve)',
+        'UpdateRecord': 'key* (Record key), data* (Fields to update)',
+      },
     };
 
     // Build the verified module block injected into Claude's planning prompt
@@ -570,9 +621,13 @@ Example output:
     // -------------------------------------------------------------------------
     setStage('planning workflow');
 
-    const SYSTEM_PROMPT = `You are a Make.com workflow architect. Output ONLY a valid JSON plan — no explanation, no markdown, no code fences.
+    const SYSTEM_PROMPT = `You are the world's most expert Make.com automation architect. You have deep knowledge of every Make.com module, pattern, and best practice. You build automations that actually work, not just look right.
 
-Required format:
+OUTPUT: ONLY valid JSON. No explanation, no markdown, no code fences.
+
+═══════════════════════
+SINGLE SCENARIO FORMAT
+═══════════════════════
 {
   "scenario_name": "descriptive name",
   "modules": [
@@ -583,70 +638,100 @@ Required format:
       "version": 1,
       "type": "trigger",
       "mappings": {}
-    },
-    {
-      "id": 2,
-      "app": "builtin",
-      "module": "BasicRouter",
-      "version": 1,
-      "type": "router",
-      "routes": [
-        {
-          "label": "Branch label",
-          "condition": {
-            "field": "{{1.fieldName}}",
-            "operator": "number:greater",
-            "value": "50"
-          },
-          "modules": [3, 4]
-        },
-        {
-          "label": "Fallback label",
-          "fallback": true,
-          "modules": [5]
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "app": "exact-app-slug",
-      "module": "ExactModuleName",
-      "version": 1,
-      "type": "action",
-      "mappings": { "fieldName": "{{1.fieldName}}" }
     }
   ],
-  "connections": {
-    "google-email": "google-restricted"
+  "connections": {}
+}
+
+═══════════════════════
+MULTI-SCENARIO FORMAT
+═══════════════════════
+Use when brief contains: "wait for reply", "when they respond", "follow up after X hours/days", "second automation", "when they reply", "if no response"
+
+{
+  "multi_scenario": true,
+  "scenarios": [
+    {
+      "scenario_name": "name",
+      "description": "what this scenario does",
+      "modules": [...]
+    }
+  ],
+  "shared_data_store": {
+    "needed": true,
+    "fields": ["phone", "name", "email", "status", "sent_at"]
   }
 }
 
-Router rules:
+═══════════════════════
+ROUTER RULES
+═══════════════════════
 - Use "builtin" / "BasicRouter" for all routers
-- Each route: "label", optional "condition", "modules" array of ids
+- Each route needs: label, condition (or fallback:true), modules array
 - Fallback route: "fallback": true, NO condition
-- All modules in route.modules must also be full entries in top-level "modules" array
+- All modules referenced in routes must exist in top-level modules array
 
-Filter operators: "text:equal", "text:notequal", "number:greater", "number:less", "text:contain", "boolean:true", "existence:exist"
+Filter operators:
+text:equal, text:notequal, text:contain, number:greater, number:less, boolean:true, existence:exist
 
-General rules:
-- CRITICAL: use ONLY module names from VERIFIED MAKE.COM MODULES below
-- CRITICAL: the ONLY valid builtin module is "BasicRouter". Never use Sleep, Delay, Iterator, Aggregator, or any other builtin — they are not supported
-- CRITICAL: never use "openai" — it is not available in Make.com. If the brief mentions AI/GPT/OpenAI, ignore that requirement and build the workflow without it
-- "version" must match the app version listed
-- First module is always the trigger (id: 1)
-- Use {{moduleId.fieldName}} for data mappings between modules
-- Only list apps needing OAuth in "connections"
+═══════════════════════
+AI AGENT RULES (CRITICAL)
+═══════════════════════
+Use make-ai-agents:RunAgent when brief mentions:
+"ai agent", "ai replies", "ai responds", "automate replies", "ai conversation", "chatbot", "ai follow up", "qualify with ai"
 
-Mappings rules (CRITICAL — do not leave mappings empty):
-- Every action module MUST have its mappings filled with real values from the brief or data from previous modules
-- Use the field names listed under each module in VERIFIED MAKE.COM MODULES
-- For message fields (body, message, text, content): write the actual message text from the brief
-- For contact fields (phone, email, name): map from trigger data using {{1.fieldName}}
-- For status/pipeline fields: use the exact values mentioned in the brief
-- Example WhatsApp message: "mappings": { "to": "{{1.phone}}", "body": "Thank you for your interest!" }
-- Example GoHighLevel contact: "mappings": { "contactId": "{{1.id}}", "pipelineId": "new-lead", "status": "open" }
-- Never output "mappings": {} for an action module — always populate it${verifiedModulesPrompt}`;
+AI agent module MUST have:
+1. systemPrompt — full persona, business context, goal, tone, restrictions. Minimum 100 words. Use AI_AGENT_CONTEXT if provided.
+2. prompt — dynamic instruction with {{chatHistory}} and {{lastMessage}} variables for conversation flows
+
+systemPrompt template:
+"You are [name], [role] at [company].
+[Business description].
+Your goal: [specific goal].
+Tone: [tone]. Max 3 sentences per reply.
+Always use the lead's name.
+Booking link: [link if provided].
+Never: [restrictions]."
+
+prompt template:
+"Chat history:\n{{chatHistory}}\n\nLatest message:\n{{lastMessage}}\n\nLead: {{1.name}} ({{1.email}})\n\n[Specific instruction for this step]"
+
+═══════════════════════
+MAPPINGS RULES (CRITICAL)
+═══════════════════════
+NEVER output empty mappings {} for action modules.
+Always populate with real values from the brief.
+
+- Message fields (body, message, text): write actual message text
+- Contact fields (phone, email, name): map from trigger {{1.field}}
+- For WhatsApp: { "to": "{{1.phone}}", "body": "actual message" }
+- For Gmail: { "to": "{{1.email}}", "subject": "...", "html": "..." }
+- For HubSpot: { "contactId": "{{1.id}}", "properties": {...} }
+- For Airtable: { "tableId": "...", "fields": { "Name": "{{1.name}}" } }
+- For data-store write: { "key": "{{1.phone}}", "data": {...} }
+- For data-store read: { "filter": "{{1.phone}}" }
+
+═══════════════════════
+ADVANCED PATTERNS
+═══════════════════════
+
+STATEFUL CONVERSATION PATTERN:
+When brief needs to track conversation state:
+- End of Scenario 1: write lead to data-store with status "awaiting_reply"
+- Start of Scenario 2: read data-store by phone/email to get lead context
+- After AI replies: update data-store status to "replied"
+- Scheduled scenario: check data-store for "awaiting_reply" + sent_at > 24h
+
+DATA STORE WRITE (EXACT FORMAT — use "datastore" not "data-store"):
+{ "id": X, "app": "datastore", "module": "AddRecord", "version": 1, "type": "action", "mappings": { "key": "{{1.phone}}", "data": { "name": "{{1.name}}", "status": "awaiting_reply", "sent_at": "{{now}}" } } }
+
+DATA STORE READ (EXACT FORMAT):
+{ "id": X, "app": "datastore", "module": "SearchRecord", "version": 1, "type": "action", "mappings": { "filter": "{{1.phone}}" } }
+
+ONLY USE VERIFIED MODULE NAMES. When in doubt about a module name, use the closest verified match.
+
+AI_AGENT_CONTEXT will be provided in the user message when the brief requires an AI agent. Always use it to build the systemPrompt — never use a generic placeholder.
+${verifiedModulesPrompt}`;
 
     const ALLOWED_BUILTINS = new Set(['BasicRouter']);
     const verifiedAppNames = new Set(Object.keys(verifiedModuleMap));
@@ -669,11 +754,17 @@ Mappings rules (CRITICAL — do not leave mappings empty):
     }
 
     function validatePlan(plan) {
-      for (const mod of plan.modules) {
+      const modsToCheck = plan.multi_scenario
+        ? (plan.scenarios || []).flatMap(s => s.modules || [])
+        : plan.modules || [];
+
+      for (const mod of modsToCheck) {
         if (mod.app === 'builtin') {
           if (!ALLOWED_BUILTINS.has(mod.module)) {
             throw new Error(`Unsupported builtin module "${mod.module}" — only BasicRouter is allowed`);
           }
+        } else if (mod.app === 'make-ai-agents') {
+          // internal module — always valid
         } else if (!verifiedAppNames.has(mod.app)) {
           throw new Error(`App "${mod.app}" is not in the verified modules list — do not use it`);
         }
@@ -681,7 +772,20 @@ Mappings rules (CRITICAL — do not leave mappings empty):
     }
 
     console.log('\n[1/4] Claude planning workflow...');
-    const userMessage = `Agency: ${agency_name}\nPlatform: ${platform}\n\nBrief:\n${cleanBrief}`;
+    const userMessage = `Agency: ${agency_name}
+Platform: ${platform}
+Selected apps: ${selectedApps}
+
+Brief:
+${cleanBrief}
+${ai_agent_context ? `
+AI_AGENT_CONTEXT:
+Business: ${ai_agent_context.business_description}
+Goal: ${ai_agent_context.goal}
+Tone: ${ai_agent_context.tone}
+Booking link: ${ai_agent_context.booking_link || 'not provided'}
+Restrictions: ${ai_agent_context.restrictions || 'none'}
+` : ''}`.trim();
     let plan;
 
     try {
@@ -700,8 +804,18 @@ Mappings rules (CRITICAL — do not leave mappings empty):
       validatePlan(plan); // if this fails again, propagate the error
     }
 
-    console.log(`[1/4] Plan: "${plan.scenario_name}" — ${plan.modules.length} modules`);
-    plan.modules.forEach((m) => console.log(`       ${m.id}. ${m.app}/${m.module} v${m.version} (${m.type})`));
+    // Helper: get all modules from a plan (single or multi-scenario)
+    const allModules = plan.multi_scenario
+      ? plan.scenarios.flatMap(s => s.modules || [])
+      : plan.modules || [];
+
+    if (plan.multi_scenario) {
+      console.log(`[1/4] Multi-scenario plan: ${plan.scenarios.length} scenarios`);
+      plan.scenarios.forEach((s, i) => console.log(`       ${i+1}. "${s.scenario_name}" — ${s.modules.length} modules`));
+    } else {
+      console.log(`[1/4] Plan: "${plan.scenario_name}" — ${plan.modules.length} modules`);
+      plan.modules.forEach((m) => console.log(`       ${m.id}. ${m.app}/${m.module} v${m.version} (${m.type})`));
+    }
 
     // -------------------------------------------------------------------------
     // Step 2: Validate every module — fail hard on any error
@@ -709,15 +823,13 @@ Mappings rules (CRITICAL — do not leave mappings empty):
     setStage('validating modules');
     console.log('\n[2/4] Validating modules via Make MCP...');
 
-    const schemas = {};
-    for (const mod of plan.modules) {
-      if (mod.app === 'builtin') {
-        console.log(`       ✓ builtin/${mod.module} — allowed builtin`);
+    for (const mod of allModules) {
+      if (mod.app === 'builtin' || mod.app === 'make-ai-agents') {
+        console.log(`       ✓ ${mod.app}/${mod.module} — skipped (internal module)`);
         continue;
       }
-
       try {
-        schemas[mod.id] = await getModuleSchema(mod.app, mod.module, mod.version, creds);
+        await getModuleSchema(mod.app, mod.module, mod.version, creds);
         console.log(`       ✓ ${mod.app}/${mod.module}`);
       } catch (e) {
         throw new Error(`Module validation failed for "${mod.app}:${mod.module}" v${mod.version}: ${e.message}`);
@@ -727,74 +839,81 @@ Mappings rules (CRITICAL — do not leave mappings empty):
     console.log('[2/4] All modules validated.');
 
     // -------------------------------------------------------------------------
-    // Step 3: Build the complete Make.com blueprint JSON
-    // -------------------------------------------------------------------------
-    setStage('building blueprint');
-    console.log('\n[3/4] Building blueprint...');
-
-    const blueprint = buildBlueprint(plan);
-    console.log(`[3/4] Blueprint ready — ${blueprint.flow.length} top-level flow entries.`);
-
-    // -------------------------------------------------------------------------
-    // Step 4: Deploy via user's MCP
+    // Step 3 + 4: Build blueprints and deploy
     // -------------------------------------------------------------------------
     setStage('deploying scenario');
-    console.log('\n[4/4] Deploying to Make via MCP...');
 
-    const deployRaw = await callMCPTool('scenarios_create', {
-      teamId,
-      scheduling: { type: 'indefinitely', interval: 900 },
-      blueprint,
-      confirmed: true,
-    }, creds);
+    async function deploySingleScenario(scenarioPlan) {
+      setStage('building blueprint');
+      const blueprint = buildBlueprint(scenarioPlan);
+      console.log(`\n  Building: "${scenarioPlan.scenario_name}" — ${blueprint.flow.length} top-level entries`);
 
-    let scenario;
-    try {
-      scenario = JSON.parse(deployRaw);
-    } catch {
-      scenario = { raw: deployRaw };
+      setStage('deploying scenario');
+      const deployRaw = await callMCPTool('scenarios_create', {
+        teamId,
+        scheduling: { type: 'indefinitely', interval: 900 },
+        blueprint,
+        confirmed: true,
+      }, creds);
+
+      let deployed;
+      try { deployed = JSON.parse(deployRaw); } catch { deployed = { raw: deployRaw }; }
+
+      const scenarioId = deployed.id || deployed.scenario?.id;
+      const scenarioName = deployed.name || deployed.scenario?.name || scenarioPlan.scenario_name;
+      const makeUrl = `https://us1.make.com/${teamId}/scenarios/${scenarioId}/edit`;
+
+      console.log(`  ✅ Created: ${scenarioName} (ID: ${scenarioId})`);
+
+      const appsUsed = (scenarioPlan.modules || [])
+        .filter(m => m.app !== 'builtin')
+        .map(m => m.app)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .join(', ');
+
+      await supabase.from('created_scenarios').insert({
+        scenario_name: scenarioName,
+        scenario_id: String(scenarioId),
+        brief: cleanBrief,
+        original_brief: brief,
+        apps_used: appsUsed,
+        make_url: makeUrl,
+        agency_name,
+        user_id,
+      });
+
+      return { scenario_name: scenarioName, scenario_id: String(scenarioId), make_url: makeUrl };
     }
 
-    const scenarioId = scenario.id || scenario.scenario?.id;
-    const scenarioName = scenario.name || scenario.scenario?.name || plan.scenario_name;
-    console.log('[4/4] Scenario created:', scenarioId);
+    // Multi-scenario deployment
+    if (plan.multi_scenario && Array.isArray(plan.scenarios)) {
+      console.log(`\n[3-4/4] Deploying ${plan.scenarios.length} scenarios...`);
+      const deployedScenarios = [];
+      for (const scenario of plan.scenarios) {
+        const result = await deploySingleScenario(scenario);
+        deployedScenarios.push(result);
+      }
 
-    // -------------------------------------------------------------------------
-    // Step 5: Save to Supabase (non-blocking)
-    // -------------------------------------------------------------------------
-    const appsUsed = plan.modules
-      .filter((m) => m.app !== 'builtin')
-      .map((m) => m.app)
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .join(', ');
-
-    const { error: sbError } = await supabase.from('created_scenarios').insert({
-      scenario_name: scenarioName,
-      scenario_id: String(scenarioId),
-      brief: cleanBrief,
-      original_brief: brief,
-      apps_used: appsUsed,
-      make_url: `https://us1.make.com/${teamId}/scenarios/${scenarioId}/edit`,
-      agency_name,
-      user_id,
-    });
-
-    if (sbError) {
-      console.error('⚠ Supabase insert failed (scenario was still created):', sbError.message);
-    } else {
-      console.log('[5/5] Saved to Supabase.');
+      resetStage();
+      return res.json({
+        success: true,
+        multi_scenario: true,
+        scenarios: deployedScenarios,
+      });
     }
+
+    // Single scenario deployment
+    console.log('\n[3-4/4] Building and deploying...');
+    const result = await deploySingleScenario(plan);
 
     resetStage();
 
-    const makeUrl = `https://us1.make.com/${teamId}/scenarios/${scenarioId}/edit`;
-
     return res.json({
       success: true,
-      scenario_id: scenarioId,
-      scenario_name: scenarioName,
-      make_url: makeUrl,
-      apps_used: plan.modules.filter(m => m.app !== 'builtin').map(m => m.app).filter((v,i,a) => a.indexOf(v) === i),
+      scenario_id: result.scenario_id,
+      scenario_name: result.scenario_name,
+      make_url: result.make_url,
+      apps_used: (plan.modules || []).filter(m => m.app !== 'builtin').map(m => m.app).filter((v,i,a) => a.indexOf(v) === i),
     });
   } catch (err) {
     resetStage();

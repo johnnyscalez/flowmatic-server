@@ -848,5 +848,520 @@
         "type": "action"
       }
     ]
+  },
+  "two-chat": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "callStatusUpdate",
+        "label": "Watch Call Status Update",
+        "type": "trigger"
+      },
+      {
+        "name": "groupMessageReactionReceived",
+        "label": "Watch Received WhatsApp Group Message Reaction",
+        "type": "trigger"
+      },
+      {
+        "name": "incomingCallCompleted",
+        "label": "Watch Incoming Call Completed",
+        "type": "trigger"
+      },
+      {
+        "name": "individualWhatsAppMessageReceived",
+        "label": "Watch Received WhatsApp Message",
+        "type": "trigger"
+      },
+      {
+        "name": "messageReactionReceived",
+        "label": "Watch Received WhatsApp Message Reaction",
+        "type": "trigger"
+      },
+      {
+        "name": "outgoingCallCompleted",
+        "label": "Watch Outgoing Call Completed",
+        "type": "trigger"
+      },
+      {
+        "name": "participantJoinedWhatsAppGroup",
+        "label": "Watch New Participant Joined WhatsApp Group",
+        "type": "trigger"
+      },
+      {
+        "name": "participantLeftWhatsAppGroup",
+        "label": "Watch Participant Left a WhatsApp Group",
+        "type": "trigger"
+      },
+      {
+        "name": "participantWasRemovedFromWhatsAppGroup",
+        "label": "Watch Participant Removed from WhatsApp Group",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppCallMade",
+        "label": "Watch WhatsApp Call Made",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppCallReceived",
+        "label": "Watch WhatsApp Call Received",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppGroupMessageReceived",
+        "label": "Watch Received WhatsApp Group Message",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppNewConversationReceived",
+        "label": "Watch New WhatsApp Conversation",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppNewMessage",
+        "label": "Watch New WhatsApp Message",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppOrderReceived",
+        "label": "Watch Order Received on WhatsApp",
+        "type": "trigger"
+      },
+      {
+        "name": "whatsAppSetStatus",
+        "label": "Set a WhatsApp Status",
+        "type": "action"
+      },
+      {
+        "name": "WhatsappSendMessage",
+        "label": "Send a WhatsApp Text Message",
+        "type": "action"
+      },
+      {
+        "name": "sendWhatsAppMediaMessage",
+        "label": "Send a WhatsApp Media Message",
+        "type": "action"
+      },
+      {
+        "name": "sendWhatsAppGroupTextMessage",
+        "label": "Send a Text Message to a WhatsApp Group",
+        "type": "action"
+      },
+      {
+        "name": "sendWhatsAppGroupMediaMessage",
+        "label": "Send a Media Message to a WhatsApp Group",
+        "type": "action"
+      },
+      {
+        "name": "checkWhatsAppNumber",
+        "label": "Check a phone number for WhatsApp account",
+        "type": "action"
+      },
+      {
+        "name": "twoChatAPI",
+        "label": "Make an API Call",
+        "type": "action"
+      },
+      {
+        "name": "getWhatsappPhoneNumbers",
+        "label": "List WhatsApp Phone Numbers",
+        "type": "action"
+      },
+      {
+        "name": "listWhatsAppGroups",
+        "label": "List WhatsApp Groups",
+        "type": "action"
+      }
+    ]
+  },
+  "azure-openai": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "generateAnImage",
+        "label": "Generate an Image (DALL-E 3)",
+        "type": "action"
+      },
+      {
+        "name": "createATranslation",
+        "label": "Create a Translation (Whisper)",
+        "type": "action"
+      },
+      {
+        "name": "createATranscription",
+        "label": "Create a Transcription (Whisper)",
+        "type": "action"
+      },
+      {
+        "name": "createAChatCompletion",
+        "label": "Create a Chat Completion (Prompt)",
+        "type": "action"
+      },
+      {
+        "name": "makeAnApiCall",
+        "label": "Make an API Call",
+        "type": "action"
+      }
+    ]
+  },
+  "gateway": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "CustomTrigger",
+        "label": "Custom event",
+        "type": "trigger"
+      },
+      {
+        "name": "CustomWebHook",
+        "label": "Custom webhook",
+        "type": "trigger"
+      },
+      {
+        "name": "CustomMailHook",
+        "label": "Custom mailhook",
+        "type": "trigger"
+      },
+      {
+        "name": "CustomAction",
+        "label": "Custom action",
+        "type": "action"
+      },
+      {
+        "name": "WebhookRespond",
+        "label": "Webhook response",
+        "type": "action"
+      }
+    ]
+  },
+  "whatsapp-business-cloud": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "watchEvents",
+        "label": "Watch Events (legacy)",
+        "type": "trigger"
+      },
+      {
+        "name": "watchEvents2",
+        "label": "Watch Events",
+        "type": "trigger"
+      },
+      {
+        "name": "verifiyPhoneNumber",
+        "label": "Verify a Sender",
+        "type": "action"
+      },
+      {
+        "name": "uploadMedia",
+        "label": "Upload a Media",
+        "type": "action"
+      },
+      {
+        "name": "updateBusinessProfile",
+        "label": "Update a Business Profile",
+        "type": "action"
+      },
+      {
+        "name": "sendTemplateMessage",
+        "label": "Send a Template Message",
+        "type": "action"
+      },
+      {
+        "name": "sendMessage",
+        "label": "Send a Message",
+        "type": "action"
+      },
+      {
+        "name": "registerPhoneNumber",
+        "label": "Register a Sender",
+        "type": "action"
+      },
+      {
+        "name": "getMedia",
+        "label": "Download a Media",
+        "type": "action"
+      },
+      {
+        "name": "getBusinessProfile",
+        "label": "Get a Business Profile",
+        "type": "action"
+      },
+      {
+        "name": "enable2SVPhoneNumber",
+        "label": "Enable Two-Step Verification",
+        "type": "action"
+      },
+      {
+        "name": "deregisterPhoneNumber",
+        "label": "Deregister a Sender",
+        "type": "action"
+      }
+    ]
+  },
+  "shipstation": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "listenForOrderEvents",
+        "label": "Listen for Order Events",
+        "type": "trigger"
+      },
+      {
+        "name": "listenForOrderEventsIndividual",
+        "label": "Listen for Order Events (with Item Info)",
+        "type": "trigger"
+      },
+      {
+        "name": "listenForShipmentEvents",
+        "label": "Listen for Shipment Events",
+        "type": "trigger"
+      },
+      {
+        "name": "listenForShipmentEventsDetailed",
+        "label": "Listen for Shipment Events (with Item Info)",
+        "type": "trigger"
+      },
+      {
+        "name": "voidLabel",
+        "label": "Void Label",
+        "type": "action"
+      },
+      {
+        "name": "updateWarehouse",
+        "label": "Update Warehouse",
+        "type": "action"
+      },
+      {
+        "name": "updateStore",
+        "label": "Update Store",
+        "type": "action"
+      },
+      {
+        "name": "updateProduct",
+        "label": "Update Product",
+        "type": "action"
+      },
+      {
+        "name": "updateOrder",
+        "label": "Update Order",
+        "type": "action"
+      },
+      {
+        "name": "unassignUserFromOrder",
+        "label": "Unassign User from Order",
+        "type": "action"
+      },
+      {
+        "name": "restoreOrderFromOnHold",
+        "label": "Restore Order from On Hold",
+        "type": "action"
+      },
+      {
+        "name": "removeTagFromOrder",
+        "label": "Remove Tag From Order",
+        "type": "action"
+      },
+      {
+        "name": "refreshStore",
+        "label": "Refresh Store",
+        "type": "action"
+      },
+      {
+        "name": "reactivateStore",
+        "label": "Reactivate Store",
+        "type": "action"
+      },
+      {
+        "name": "markAnOrderAsShipped",
+        "label": "Mark an Order as Shipped",
+        "type": "action"
+      },
+      {
+        "name": "holdOrder",
+        "label": "Hold Order",
+        "type": "action"
+      },
+      {
+        "name": "getWarehouse",
+        "label": "Get Warehouse",
+        "type": "action"
+      },
+      {
+        "name": "getStore",
+        "label": "Get Store",
+        "type": "action"
+      },
+      {
+        "name": "getProduct",
+        "label": "Get Product",
+        "type": "action"
+      },
+      {
+        "name": "getOrder",
+        "label": "Get Order",
+        "type": "action"
+      },
+      {
+        "name": "getCustomer",
+        "label": "Get Customer",
+        "type": "action"
+      },
+      {
+        "name": "getCarrier",
+        "label": "Get Carrier",
+        "type": "action"
+      },
+      {
+        "name": "deleteOrder",
+        "label": "Delete Order",
+        "type": "action"
+      },
+      {
+        "name": "deactivateStore",
+        "label": "Deactivate Store",
+        "type": "action"
+      },
+      {
+        "name": "createWarehouse",
+        "label": "Create Warehouse",
+        "type": "action"
+      },
+      {
+        "name": "createOrder",
+        "label": "Create Order",
+        "type": "action"
+      },
+      {
+        "name": "assignUserToOrder",
+        "label": "Assign User to Order",
+        "type": "action"
+      },
+      {
+        "name": "addTagToOrder",
+        "label": "Add Tag to Order",
+        "type": "action"
+      },
+      {
+        "name": "addFunds",
+        "label": "Add Funds",
+        "type": "action"
+      },
+      {
+        "name": "makeApiCall",
+        "label": "Make an API Call",
+        "type": "action"
+      },
+      {
+        "name": "listCarriers",
+        "label": "List Carriers",
+        "type": "action"
+      },
+      {
+        "name": "listCustomers",
+        "label": "List Customers",
+        "type": "action"
+      },
+      {
+        "name": "listFulfillments",
+        "label": "List Fulfillments",
+        "type": "action"
+      },
+      {
+        "name": "listMarketplaces",
+        "label": "List Marketplaces",
+        "type": "action"
+      },
+      {
+        "name": "listOrders",
+        "label": "List Orders",
+        "type": "action"
+      },
+      {
+        "name": "listPackages",
+        "label": "List Packages",
+        "type": "action"
+      },
+      {
+        "name": "listProducts",
+        "label": "List Products",
+        "type": "action"
+      },
+      {
+        "name": "listServices",
+        "label": "List Services",
+        "type": "action"
+      },
+      {
+        "name": "listShipments",
+        "label": "List Shipments",
+        "type": "action"
+      },
+      {
+        "name": "listStores",
+        "label": "List Stores",
+        "type": "action"
+      },
+      {
+        "name": "listTags",
+        "label": "List Tags",
+        "type": "action"
+      },
+      {
+        "name": "listUsers",
+        "label": "List Users",
+        "type": "action"
+      },
+      {
+        "name": "listWarehouses",
+        "label": "List Warehouses",
+        "type": "action"
+      }
+    ]
+  },
+  "datastore": {
+    "version": 1,
+    "modules": [
+      {
+        "name": "AddRecord",
+        "label": "Add/replace a record",
+        "type": "action"
+      },
+      {
+        "name": "UpdateRecord",
+        "label": "Update a record",
+        "type": "action"
+      },
+      {
+        "name": "GetRecord",
+        "label": "Get a record",
+        "type": "action"
+      },
+      {
+        "name": "ExistRecord",
+        "label": "Check the existence of a record",
+        "type": "action"
+      },
+      {
+        "name": "DeleteRecord",
+        "label": "Delete a record",
+        "type": "action"
+      },
+      {
+        "name": "DeleteAllRecords",
+        "label": "Delete all records",
+        "type": "action"
+      },
+      {
+        "name": "Stats",
+        "label": "Count records",
+        "type": "action"
+      },
+      {
+        "name": "SearchRecord",
+        "label": "Search records",
+        "type": "action"
+      }
+    ]
   }
 }
