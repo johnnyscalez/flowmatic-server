@@ -830,24 +830,55 @@ Use when the brief requires waiting for an external event between steps — e.g.
 }
 
 ═══════════════════════
-ROUTER RULES
+ROUTER RULES (CRITICAL)
 ═══════════════════════
 - Use "builtin" / "BasicRouter" for all routers
-- Each route needs: label, condition (or fallback:true), modules array
-- Fallback route: "fallback": true, NO condition
-- All modules referenced in routes must exist in top-level modules array
+- EVERY route MUST have actual modules inside it — routes with empty modules arrays are INVALID
+- Each route needs: label, condition (or fallback:true), modules array with at least one module ID
+- Fallback route: "fallback": true, NO condition, but MUST still have modules
+- All module IDs referenced in route.modules must exist in the top-level modules array
+
+ROUTER EXAMPLE (correct):
+{
+  "id": 5, "app": "builtin", "module": "BasicRouter", "version": 1, "type": "router",
+  "routes": [
+    {
+      "label": "High Value",
+      "condition": { "field": "{{3.budget}}", "operator": "number:greater", "value": "500000" },
+      "modules": [6, 7]
+    },
+    {
+      "label": "Standard",
+      "fallback": true,
+      "modules": [8]
+    }
+  ]
+}
+— modules 6, 7, 8 must all exist in top-level modules array
 
 Filter operators:
 text:equal, text:notequal, text:contain, number:greater, number:less, boolean:true, existence:exist
 
 ═══════════════════════
+USE ALL SELECTED APPS (CRITICAL)
+═══════════════════════
+Every app listed in "Selected apps" MUST appear in the plan at least once.
+If Slack is selected → there MUST be a slack module in the plan.
+If Google Sheets is selected → there MUST be a google-sheets module.
+Never silently drop a selected app. If you are unsure where it fits, add it at the most logical step.
+
+═══════════════════════
 AI AGENT RULES (CRITICAL)
 ═══════════════════════
-Use make-ai-agents:RunAgent whenever the brief requires intelligent, dynamic responses — qualifying leads, answering questions, handling replies, personalizing outreach, or any scenario where a fixed message is not enough. You decide this based on the intent, not on specific keywords.
+Use make-ai-agents:RunAgent whenever the brief requires intelligent, dynamic responses — qualifying leads, answering questions, handling replies, personalizing outreach, or any scenario where a fixed message is not enough.
 
 AI agent module MUST have:
 1. systemPrompt — full persona, business context, goal, tone, restrictions. Minimum 100 words. Use AI_AGENT_CONTEXT if provided.
 2. prompt — dynamic instruction with {{chatHistory}} and {{lastMessage}} variables for conversation flows
+
+After an AI agent module, any module that uses the AI response MUST use {{AI_RESPONSE}} as the placeholder.
+The system will automatically replace {{AI_RESPONSE}} with the correct field path for the configured LLM provider.
+NEVER use {{3.response}}, {{3.data}}, {{3.choices}} or any raw field — ALWAYS use {{AI_RESPONSE}}.
 
 systemPrompt template:
 "You are [name], [role] at [company].
@@ -869,12 +900,14 @@ Always populate with real values from the brief.
 
 - Message fields (body, message, text): write actual message text
 - Contact fields (phone, email, name): map from trigger {{1.field}}
-- For WhatsApp: { "to": "{{1.phone}}", "body": "actual message" }
-- For Gmail: { "to": "{{1.email}}", "subject": "...", "html": "..." }
-- For HubSpot: { "contactId": "{{1.id}}", "properties": {...} }
-- For Airtable: { "tableId": "...", "fields": { "Name": "{{1.name}}" } }
-- For data-store write: { "key": "{{1.phone}}", "data": {...} }
-- For data-store read: { "filter": "{{1.phone}}" }
+- For WhatsApp: { "to": "{{1.phone}}", "body": "actual message text here" }
+- For WhatsApp reply using AI: { "to": "{{1.phone}}", "body": "{{AI_RESPONSE}}", "type": "text" }
+- For Gmail: { "to": "{{1.email}}", "subject": "...", "content": "..." }
+- For Slack: { "channel": "#channel-name", "text": "actual notification text with {{1.name}}" }
+- For Google Sheets: { "spreadsheetId": "YOUR_SPREADSHEET_ID", "sheetId": "Sheet1", "values": { "Name": "{{1.name}}", "Phone": "{{1.phone}}", "Status": "qualified" } }
+- For HubSpot: { "objectType": "contacts", "properties": { "email": "{{1.email}}", "firstname": "{{1.name}}" } }
+- For datastore write: { "key": "{{1.phone}}", "data": { "name": "{{1.name}}", "status": "awaiting_reply", "sent_at": "{{now}}" } }
+- For datastore read: { "filter": "{{1.phone}}" }
 
 ═══════════════════════
 ADVANCED PATTERNS
@@ -882,12 +915,12 @@ ADVANCED PATTERNS
 
 STATEFUL CONVERSATION PATTERN:
 When brief needs to track conversation state:
-- End of Scenario 1: write lead to data-store with status "awaiting_reply"
-- Start of Scenario 2: read data-store by phone/email to get lead context
-- After AI replies: update data-store status to "replied"
-- Scheduled scenario: check data-store for "awaiting_reply" + sent_at > 24h
+- End of Scenario 1: write lead to datastore with status "awaiting_reply"
+- Start of Scenario 2: read datastore by phone/email to get lead context
+- After AI replies: update datastore status to "replied"
+- Scheduled scenario: check datastore for status "awaiting_reply" + sent_at > 24h
 
-DATA STORE WRITE (EXACT FORMAT — use "datastore" not "data-store"):
+DATA STORE WRITE (EXACT FORMAT):
 { "id": X, "app": "datastore", "module": "AddRecord", "version": 1, "type": "action", "mappings": { "key": "{{1.phone}}", "data": { "name": "{{1.name}}", "status": "awaiting_reply", "sent_at": "{{now}}" } } }
 
 DATA STORE READ (EXACT FORMAT):
@@ -904,7 +937,7 @@ ${verifiedModulesPrompt}`;
     async function callPlanningClaude(messages) {
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
+        max_tokens: 8000,
         system: SYSTEM_PROMPT,
         messages,
       });
