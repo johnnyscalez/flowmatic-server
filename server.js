@@ -743,23 +743,44 @@ Example output:
       },
     };
 
+    // Always make datastore and make-ai-agents available to Claude — system decides when to use them
+    verifiedModuleMap['datastore'] = verifiedModuleMap['datastore'] || await resolveAppModules('datastore', creds).catch(() => ({
+      version: 1,
+      modules: [
+        { name: 'AddRecord',    label: 'Add/replace a record', type: 'action' },
+        { name: 'SearchRecord', label: 'Search records',       type: 'action' },
+        { name: 'GetRecord',    label: 'Get a record',         type: 'action' },
+        { name: 'UpdateRecord', label: 'Update a record',      type: 'action' },
+        { name: 'DeleteRecord', label: 'Delete a record',      type: 'action' },
+      ],
+    }));
+
     // Build the verified module block injected into Claude's planning prompt
-    let verifiedModulesPrompt = '';
-    if (Object.keys(verifiedModuleMap).length > 0) {
-      verifiedModulesPrompt = '\n\nVERIFIED MAKE.COM MODULES (use ONLY these — no others):\n';
-      for (const [appName, { version, modules }] of Object.entries(verifiedModuleMap)) {
-        const triggers = modules.filter((m) => m.type === 'trigger');
-        const actions = modules.filter((m) => m.type === 'action');
-        verifiedModulesPrompt += `\nApp: "${appName}" (version: ${version})\n`;
-        for (const mod of [...triggers, ...actions]) {
-          verifiedModulesPrompt += `  ${mod.type === 'trigger' ? 'Trigger' : 'Action'}: ${mod.name} ("${mod.label}")\n`;
-          const fields = KNOWN_FIELDS[appName]?.[mod.name];
-          if (fields) {
-            verifiedModulesPrompt += `    Mapper fields: ${fields}\n`;
-          }
-        }
+    let verifiedModulesPrompt = '\n\nVERIFIED MAKE.COM MODULES (use ONLY these — no others):\n';
+
+    // User-selected external apps
+    for (const [appName, { version, modules }] of Object.entries(verifiedModuleMap)) {
+      const triggers = modules.filter((m) => m.type === 'trigger');
+      const actions  = modules.filter((m) => m.type === 'action');
+      verifiedModulesPrompt += `\nApp: "${appName}" (version: ${version})\n`;
+      for (const mod of [...triggers, ...actions]) {
+        verifiedModulesPrompt += `  ${mod.type === 'trigger' ? 'Trigger' : 'Action'}: ${mod.name} ("${mod.label}")\n`;
+        const fields = KNOWN_FIELDS[appName]?.[mod.name];
+        if (fields) verifiedModulesPrompt += `    Mapper fields: ${fields}\n`;
       }
     }
+
+    // Always-available internal modules
+    verifiedModulesPrompt += `
+App: "datastore" (version: 1) — USE when conversation state or lead data must persist across scenarios
+  Action: AddRecord ("Add/replace a record") — Mapper fields: ${KNOWN_FIELDS.datastore.AddRecord}
+  Action: SearchRecord ("Search records") — Mapper fields: ${KNOWN_FIELDS.datastore.SearchRecord}
+  Action: GetRecord ("Get a record") — Mapper fields: ${KNOWN_FIELDS.datastore.GetRecord}
+  Action: UpdateRecord ("Update a record") — Mapper fields: ${KNOWN_FIELDS.datastore.UpdateRecord}
+
+App: "make-ai-agents" (version: 1) — USE when brief requires AI conversation, qualifying leads, or automated replies
+  Action: RunAgent ("Run AI Agent") — Mapper fields: systemPrompt* (persona + goal), prompt* (dynamic instruction with {{chatHistory}} and {{lastMessage}})
+`;
 
     // -------------------------------------------------------------------------
     // Step 1: Claude plans the workflow — retries once if validation fails
@@ -791,7 +812,7 @@ SINGLE SCENARIO FORMAT
 ═══════════════════════
 MULTI-SCENARIO FORMAT
 ═══════════════════════
-Use when brief contains: "wait for reply", "when they respond", "follow up after X hours/days", "second automation", "when they reply", "if no response"
+Use when the brief requires waiting for an external event between steps — e.g. waiting for a reply, a form submission, a payment, or any human action before the next step can run. You decide this based on the logic, not on specific keywords.
 
 {
   "multi_scenario": true,
@@ -822,8 +843,7 @@ text:equal, text:notequal, text:contain, number:greater, number:less, boolean:tr
 ═══════════════════════
 AI AGENT RULES (CRITICAL)
 ═══════════════════════
-Use make-ai-agents:RunAgent when brief mentions:
-"ai agent", "ai replies", "ai responds", "automate replies", "ai conversation", "chatbot", "ai follow up", "qualify with ai"
+Use make-ai-agents:RunAgent whenever the brief requires intelligent, dynamic responses — qualifying leads, answering questions, handling replies, personalizing outreach, or any scenario where a fixed message is not enough. You decide this based on the intent, not on specific keywords.
 
 AI agent module MUST have:
 1. systemPrompt — full persona, business context, goal, tone, restrictions. Minimum 100 words. Use AI_AGENT_CONTEXT if provided.
@@ -908,8 +928,8 @@ ${verifiedModulesPrompt}`;
           if (!ALLOWED_BUILTINS.has(mod.module)) {
             throw new Error(`Unsupported builtin module "${mod.module}" — only BasicRouter is allowed`);
           }
-        } else if (mod.app === 'make-ai-agents') {
-          // internal module — always valid
+        } else if (mod.app === 'make-ai-agents' || mod.app === 'datastore') {
+          // always-available internal modules — no validation needed
         } else if (!verifiedAppNames.has(mod.app)) {
           throw new Error(`App "${mod.app}" is not in the verified modules list — do not use it`);
         }
