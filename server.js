@@ -1141,22 +1141,31 @@ app.get('/apps', (_req, res) => {
 // ---------------------------------------------------------------------------
 
 app.post('/save-mcp-credentials', async (req, res) => {
-  const { user_id, mcp_url, mcp_token } = req.body;
+  const { user_id, mcp_url, mcp_token, llm_provider, llm_api_key, llm_model } = req.body;
 
   if (!user_id || !mcp_url || !mcp_token) {
     return res.status(400).json({ error: 'user_id, mcp_url, and mcp_token are required' });
   }
 
+  const record = {
+    user_id,
+    mcp_url,
+    mcp_token,
+    llm_provider: llm_provider || 'openai',
+    llm_api_key:  llm_api_key  || null,
+    llm_model:    llm_model    || null,
+  };
+
   // Delete existing row first, then insert (avoids needing a unique constraint)
   await supabase.from('user_mcp').delete().eq('user_id', user_id);
-  const { error } = await supabase.from('user_mcp').insert({ user_id, mcp_url, mcp_token });
+  const { error } = await supabase.from('user_mcp').insert(record);
 
   if (error) {
     console.error('Failed to save MCP credentials:', error);
     return res.status(500).json({ error: error.message });
   }
 
-  console.log(`✅ MCP credentials saved for user ${user_id}`);
+  console.log(`✅ Credentials saved for user ${user_id} (LLM: ${record.llm_provider})`);
   return res.json({ success: true });
 });
 
