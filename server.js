@@ -952,19 +952,42 @@ ${verifiedModulesPrompt}`;
     }
 
     function validatePlan(plan) {
-      const modsToCheck = plan.multi_scenario
-        ? (plan.scenarios || []).flatMap(s => s.modules || [])
-        : plan.modules || [];
+      const allScenarios = plan.multi_scenario
+        ? (plan.scenarios || [])
+        : [plan];
 
+      const modsToCheck = allScenarios.flatMap(s => s.modules || []);
+
+      // 1. Validate app names and builtins
       for (const mod of modsToCheck) {
         if (mod.app === 'builtin') {
           if (!ALLOWED_BUILTINS.has(mod.module)) {
             throw new Error(`Unsupported builtin module "${mod.module}" — only BasicRouter is allowed`);
           }
         } else if (mod.app === 'make-ai-agents' || mod.app === 'datastore') {
-          // always-available internal modules — no validation needed
+          // always-available internal modules — skip
         } else if (!verifiedAppNames.has(mod.app)) {
           throw new Error(`App "${mod.app}" is not in the verified modules list — do not use it`);
+        }
+      }
+
+      // 2. Validate router branches are not empty
+      for (const mod of modsToCheck) {
+        if (mod.type === 'router' && Array.isArray(mod.routes)) {
+          for (const route of mod.routes) {
+            if (!route.modules || route.modules.length === 0) {
+              throw new Error(`Router (id:${mod.id}) has an empty route "${route.label || 'unnamed'}" — every route must have at least one module`);
+            }
+          }
+        }
+      }
+
+      // 3. Validate all user-selected external apps appear in the plan
+      const appsInPlan = new Set(modsToCheck.map(m => m.app));
+      const externalSelected = normalizedSlugs.filter(s => s !== 'make-ai-agents' && s !== 'datastore');
+      for (const slug of externalSelected) {
+        if (!appsInPlan.has(slug)) {
+          throw new Error(`Selected app "${slug}" is not used anywhere in the plan — you must include at least one module from every selected app`);
         }
       }
     }
