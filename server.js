@@ -282,35 +282,132 @@ const GOOGLE_APPS = new Set([
   'google-drive', 'gmail', 'google-docs',
 ]);
 
-function buildFlowEntry(mod, xPos, yPos = 0) {
-  // Transform make-ai-agents:RunAgent into an HTTP call to OpenAI
-  if (mod.app === 'make-ai-agents' && mod.module === 'RunAgent') {
-    const mappings = mod.mappings || {};
-    const systemPrompt = mappings.systemPrompt || 'You are a helpful assistant.';
-    const userPrompt = mappings.prompt || '{{lastMessage}}';
+// ---------------------------------------------------------------------------
+// Multi-LLM support
+// ---------------------------------------------------------------------------
+
+function getDefaultModel(provider) {
+  const defaults = {
+    openai:    'gpt-4o-mini',
+    anthropic: 'claude-haiku-4-5-20251001',
+    deepseek:  'deepseek-chat',
+    groq:      'llama-3.3-70b-versatile',
+    mistral:   'mistral-small-latest',
+    gemini:    'gemini-1.5-flash',
+  };
+  return defaults[provider] || 'gpt-4o-mini';
+}
+
+function getLLMResponseField(provider, moduleId) {
+  if (provider === 'anthropic') return `{{${moduleId}.data.content[].text}}`;
+  if (provider === 'gemini')    return `{{${moduleId}.data.candidates[].content.parts[].text}}`;
+  return `{{${moduleId}.data.choices[].message.content}}`;
+}
+
+function buildLLMModule(id, systemPrompt, conversationPrompt, llmConfig, xPos, yPos = 0) {
+  const provider = llmConfig?.provider || 'openai';
+  const apiKey   = llmConfig?.api_key  || '';
+  const model    = llmConfig?.model    || getDefaultModel(provider);
+
+  const OPENAI_COMPATIBLE = {
+    openai:   'https://api.openai.com/v1/chat/completions',
+    deepseek: 'https://api.deepseek.com/v1/chat/completions',
+    groq:     'https://api.groq.com/openai/v1/chat/completions',
+    mistral:  'https://api.mistral.ai/v1/chat/completions',
+  };
+
+  console.log(`  🤖 Building LLM module (${provider}/${model})`);
+
+  if (provider === 'anthropic') {
     return {
-      id: mod.id,
+      id,
       module: 'http:ActionSendData',
       version: 3,
       parameters: {},
       mapper: {
-        url: 'https://api.openai.com/v1/chat/completions',
-        method: 'POST',
+        url: 'https://api.anthropic.com/v1/messages',
+        method: 'post',
         headers: [
-          { name: 'Authorization', value: 'Bearer YOUR_OPENAI_API_KEY' },
-          { name: 'Content-Type', value: 'application/json' },
+          { name: 'x-api-key',          value: apiKey },
+          { name: 'anthropic-version',   value: '2023-06-01' },
+          { name: 'content-type',        value: 'application/json' },
         ],
+        bodyType: 'raw',
+        contentType: 'application/json',
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
+          model,
+          max_tokens: 500,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: conversationPrompt }],
         }),
-        parseResponse: '1',
       },
       metadata: { designer: { x: xPos, y: yPos } },
     };
+  }
+
+  if (provider === 'gemini') {
+    return {
+      id,
+      module: 'http:ActionSendData',
+      version: 3,
+      parameters: {},
+      mapper: {
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        method: 'post',
+        headers: [
+          { name: 'content-type', value: 'application/json' },
+        ],
+        bodyType: 'raw',
+        contentType: 'application/json',
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: conversationPrompt }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+        }),
+      },
+      metadata: { designer: { x: xPos, y: yPos } },
+    };
+  }
+
+  // OpenAI-compatible (openai, deepseek, groq, mistral)
+  const url = OPENAI_COMPATIBLE[provider] || OPENAI_COMPATIBLE.openai;
+  return {
+    id,
+    module: 'http:ActionSendData',
+    version: 3,
+    parameters: {},
+    mapper: {
+      url,
+      method: 'post',
+      headers: [
+        { name: 'Authorization', value: `Bearer ${apiKey}` },
+        { name: 'Content-Type',  value: 'application/json' },
+      ],
+      bodyType: 'raw',
+      contentType: 'application/json',
+      body: JSON.stringify({
+        model,
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: conversationPrompt },
+        ],
+      }),
+    },
+    metadata: { designer: { x: xPos, y: yPos } },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Blueprint builder — llmConfig threaded through for AI agent modules
+// ---------------------------------------------------------------------------
+
+function buildFlowEntry(mod, xPos, yPos = 0, llmConfig = null) {
+  // Transform make-ai-agents:RunAgent into a provider-specific HTTP LLM call
+  if (mod.app === 'make-ai-agents' && mod.module === 'RunAgent') {
+    const mappings = mod.mappings || {};
+    const systemPrompt       = mappings.systemPrompt || 'You are a helpful assistant.';
+    const conversationPrompt = mappings.prompt       || '{{lastMessage}}';
+    return buildLLMModule(mod.id, systemPrompt, conversationPrompt, llmConfig, xPos, yPos);
   }
 
   const parameters = {};
@@ -327,7 +424,7 @@ function buildFlowEntry(mod, xPos, yPos = 0) {
   };
 }
 
-function buildBlueprint(plan) {
+function buildBlueprint(plan, llmConfig = null) {
   const modById = {};
   for (const mod of plan.modules) modById[mod.id] = mod;
 
@@ -358,7 +455,7 @@ function buildBlueprint(plan) {
         const routeFlow = (route.modules || []).map((id, i) => {
           const child = modById[id];
           if (!child) return null;
-          const entry = buildFlowEntry(child, xPos + (i + 1) * 300, yPos);
+          const entry = buildFlowEntry(child, xPos + (i + 1) * 300, yPos, llmConfig);
 
           if (i === 0) {
             if (!route.fallback && route.condition) {
@@ -388,15 +485,57 @@ function buildBlueprint(plan) {
         routes,
       });
     } else {
-      flow.push(buildFlowEntry(mod, xPos));
+      flow.push(buildFlowEntry(mod, xPos, 0, llmConfig));
     }
 
     xPos += 300;
   }
 
+  // Post-process: replace {{AI_RESPONSE}} placeholder in any mapper with
+  // the correct provider-specific field path for the LLM module before it.
+  // Claude can use {{AI_RESPONSE}} in its plan and we resolve it here.
+  const provider = llmConfig?.provider || 'openai';
+  let llmModuleId = null;
+
+  function patchAIResponse(entry) {
+    if (!llmModuleId) return entry;
+    const responseField = getLLMResponseField(provider, llmModuleId);
+    const patched = JSON.parse(
+      JSON.stringify(entry).replace(/\{\{AI_RESPONSE\}\}/g, responseField)
+    );
+    return patched;
+  }
+
+  // Walk flow to find LLM module IDs and patch downstream mappers
+  const patchedFlow = flow.map((entry) => {
+    const isLLM = entry.module === 'http:ActionSendData' &&
+      entry.mapper?.url &&
+      (entry.mapper.url.includes('openai.com') ||
+       entry.mapper.url.includes('anthropic.com') ||
+       entry.mapper.url.includes('deepseek.com') ||
+       entry.mapper.url.includes('groq.com') ||
+       entry.mapper.url.includes('mistral.ai') ||
+       entry.mapper.url.includes('generativelanguage.googleapis.com'));
+
+    if (isLLM) {
+      llmModuleId = entry.id;
+      return entry;
+    }
+
+    if (entry.routes) {
+      entry.routes = entry.routes.map((route) => ({
+        ...route,
+        flow: route.flow.map(patchAIResponse),
+      }));
+      return entry;
+    }
+
+    return patchAIResponse(entry);
+  });
+
   return {
     name: plan.scenario_name,
-    flow,
+    flow: patchedFlow,
     metadata: { version: 1, designer: { orphans: [] } },
   };
 }
@@ -419,11 +558,12 @@ app.post('/build-workflow', async (req, res) => {
   // Fetch user's MCP credentials from Supabase (fall back to .env for testing)
   // -------------------------------------------------------------------------
   let creds;
+  let llmConfig = { provider: 'openai', api_key: '', model: null };
 
   if (user_id) {
     const { data: userMcp, error: mcpError } = await supabase
       .from('user_mcp')
-      .select('mcp_url, mcp_token')
+      .select('mcp_url, mcp_token, llm_provider, llm_api_key, llm_model')
       .eq('user_id', user_id)
       .single();
 
@@ -434,6 +574,11 @@ app.post('/build-workflow', async (req, res) => {
     }
 
     creds = { url: userMcp.mcp_url, token: userMcp.mcp_token };
+    llmConfig = {
+      provider: userMcp.llm_provider || 'openai',
+      api_key:  userMcp.llm_api_key  || '',
+      model:    userMcp.llm_model    || null,
+    };
   } else {
     // No user_id — use server-level credentials from .env (dev/test fallback)
     if (!process.env.MAKE_MCP_URL || !process.env.MAKE_MCP_TOKEN) {
@@ -845,8 +990,8 @@ Restrictions: ${ai_agent_context.restrictions || 'none'}
 
     async function deploySingleScenario(scenarioPlan) {
       setStage('building blueprint');
-      const blueprint = buildBlueprint(scenarioPlan);
-      console.log(`\n  Building: "${scenarioPlan.scenario_name}" — ${blueprint.flow.length} top-level entries`);
+      const blueprint = buildBlueprint(scenarioPlan, llmConfig);
+      console.log(`\n  Building: "${scenarioPlan.scenario_name}" — ${blueprint.flow.length} top-level entries (LLM: ${llmConfig.provider}/${llmConfig.model || getDefaultModel(llmConfig.provider)})`);
 
       setStage('deploying scenario');
       const deployRaw = await callMCPTool('scenarios_create', {
