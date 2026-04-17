@@ -995,12 +995,14 @@ ${verifiedModulesPrompt}`;
         }
       }
 
-      // 3. Validate all user-selected external apps appear in the plan
+      // 3. Validate all resolved external apps appear in the plan
+      // Use verifiedModuleMap keys — these are the real Make.com slugs after MCP resolution,
+      // not the raw slugs Lovable sent (which may differ e.g. "whatsapp-business" → "whatsapp-business-cloud")
       const appsInPlan = new Set(modsToCheck.map(m => m.app));
-      const externalSelected = normalizedSlugs.filter(s => s !== 'make-ai-agents' && s !== 'datastore');
-      for (const slug of externalSelected) {
+      const resolvedExternalApps = Object.keys(verifiedModuleMap);
+      for (const slug of resolvedExternalApps) {
         if (!appsInPlan.has(slug)) {
-          throw new Error(`Selected app "${slug}" is not used anywhere in the plan — you must include at least one module from every selected app`);
+          throw new Error(`App "${slug}" was selected but not used anywhere in the plan — every selected app must appear at least once`);
         }
       }
     }
