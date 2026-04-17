@@ -660,11 +660,24 @@ Example output:
 
     // Normalize known slug aliases before resolution
     const SLUG_ALIASES = {
-      'data-store': 'datastore',
-      'make-data-store': 'datastore',
-      'make-ai-agents': 'make-ai-agents', // kept as internal, skip MCP probe
+      'data-store':           'datastore',
+      'make-data-store':      'datastore',
+      'make-ai-agents':       'make-ai-agents',
+      'whatsapp-business':    'whatsapp-business-cloud',
+      'whatsapp':             'whatsapp-business-cloud',
+      'gmail':                'google-email',
+      'google-mail':          'google-email',
+      'hubspot':              'hubspotcrm',
+      'hub-spot':             'hubspotcrm',
+      'gohighlevel':          'highlevel',
+      'go-high-level':        'highlevel',
+      'telegram':             'telegram-bot',
+      'zoho':                 'zohocrm',
+      'zoho-crm':             'zohocrm',
+      'brevo':                'sendinblue',
+      'active-campaign':      'activecampaign',
     };
-    const normalizedSlugs = detectedSlugs.map(s => SLUG_ALIASES[s] || s);
+    const normalizedSlugs = detectedSlugs.map(s => SLUG_ALIASES[s.toLowerCase()] || s);
 
     const verifiedModuleMap = {};
 
@@ -1139,7 +1152,7 @@ Restrictions: ${ai_agent_context.restrictions || 'none'}
   } catch (err) {
     resetStage();
     console.error('\n❌ Error in /build-workflow:', err.message);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Something went wrong while building your workflow. Please try again.' });
   }
 });
 
